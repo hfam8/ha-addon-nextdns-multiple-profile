@@ -807,6 +807,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         with open(OPTIONS_FILE, 'w') as f:
             json.dump(current, f, indent=2)
 
+        # Restart nextdns binary to apply new profile rules immediately
+        print("Saving configuration and triggering NextDNS process restart...")
+        os.system("pkill -9 -f 'nextdns run' || killall -9 nextdns 2>/dev/null || true")
+
+
 def run_server():
     HTTPServer.allow_reuse_address = True
     server = HTTPServer(('0.0.0.0', PORT), RequestHandler)

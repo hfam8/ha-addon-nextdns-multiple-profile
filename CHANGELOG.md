@@ -1,6 +1,12 @@
 # Changelog
 
+## [1.0.4] - 2026-08-04
+
+### Fixed
+- Trigger instant NextDNS process reload upon clicking Save & Apply Settings in the Web UI so new profile routing rules take effect immediately.
+
 ## [1.0.3] - 2026-08-04
+
 
 ### Fixed
 - Fixed GitHub API 403 error during NextDNS binary check by adding custom User-Agent header to curl.

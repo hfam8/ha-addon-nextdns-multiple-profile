@@ -1,6 +1,7 @@
 # Changelog
 
-## [0.9.2] - 2026-08-04
+## [1.0.0] - 2026-08-04
+
 
 ### Added
 - Multi-profile support for assigning specific NextDNS profiles to devices by IP address, CIDR subnet, or MAC address.

@@ -61,7 +61,24 @@ Queries not matching any assigned rule will fall back to your main `profile_id`.
 Set your router's primary DNS server (DHCP DNS) to your Home Assistant IP address. The add-on listens on port 53.
 With router DHCP handing out Home Assistant's IP as DNS, NextDNS automatically sees client source IPs/MACs and applies the designated NextDNS profile to each device.
 
+## Smartphone & Mobile Device Setup Tips
+
+Smartphones (iPhones & Androids) have default privacy features that can cause them to fall back to your Default Profile:
+
+### 1. On Home Wi-Fi (Omada Router)
+- **Turn off Private Wi-Fi Address**: In your phone's Wi-Fi network settings, disable **"Private Wi-Fi Address"** (iOS) or **"Randomized MAC"** (Android) for your home network.
+- **Reserve Static IP in Omada**: In your TP-Link Omada Controller under **Clients**, select the phone and click **Reserve IP** (e.g. `192.168.50.103`).
+- **Add Rule in NextDNS Manager**: Add a rule matching the phone's reserved IP address or MAC address.
+
+### 2. Away from Home (Cellular 5G/LTE)
+When smartphones leave your home network, they send DNS directly to cellular towers. You can configure NextDNS directly on the phone for 24/7 protection:
+
+- **Android (Private DNS)**: Go to **Settings → Network & internet → Private DNS** → select **Private DNS provider hostname** and enter:
+  `Holly--Phone-9867f6.dns.nextdns.io` *(replace `9867f6` with your profile ID)*
+- **iPhone / iOS**: Open Safari on your iPhone, visit **[apple.nextdns.io](https://apple.nextdns.io)**, enter your Profile ID (`9867f6`), and install the iOS profile in **Settings → Profile Downloaded**.
+
 ## NextDNS Updates
 
 The NextDNS client is downloaded automatically on startup and updated whenever a new version is released — no add-on update required.
+
 

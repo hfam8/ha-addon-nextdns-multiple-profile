@@ -1,6 +1,13 @@
 # Changelog
 
+## [1.0.3] - 2026-08-04
+
+### Fixed
+- Fixed GitHub API 403 error during NextDNS binary check by adding custom User-Agent header to curl.
+- Fixed socket `Address in use` (OSError 98) in web_server.py by enabling `SO_REUSEADDR` and checking for running instances in run.sh.
+
 ## [1.0.2] - 2026-08-04
+
 
 ### Fixed & Improved
 - Added `homeassistant_api: true` and `hassio_role: manager` permissions to allow the Web UI to fetch Home Assistant core entity states for device auto-discovery.

@@ -8,9 +8,10 @@ printf '\033c'
 bashio::log.info "Starting NextDNS add-on..."
 
 # ── Start Ingress Web UI Server ────────────────────────────────────────────────
-bashio::log.info "Starting NextDNS Manager Ingress Web UI..."
-python3 /etc/services.d/nextdns/web_server.py &
-
+if ! pgrep -f "web_server.py" >/dev/null 2>&1; then
+    bashio::log.info "Starting NextDNS Manager Ingress Web UI..."
+    python3 /etc/services.d/nextdns/web_server.py &
+fi
 
 # ── Map HA arch to NextDNS release arch ───────────────────────────────────────
 case "${BUILD_ARCH}" in
@@ -26,9 +27,9 @@ case "${BUILD_ARCH}" in
 esac
 
 # ── Download latest NextDNS if needed ─────────────────────────────────────────
-LATEST=$(curl -fsSL --max-time 10 \
+LATEST=$(curl -fsSL -H "User-Agent: HomeAssistant-NextDNS/1.0.3" --max-time 10 \
     "https://api.github.com/repos/nextdns/nextdns/releases/latest" \
-    | jq -r '.tag_name' | tr -d 'v') || true
+    | jq -r '.tag_name // empty' | tr -d 'v') || true
 
 CACHED=""
 [ -f "${VERSION_FILE}" ] && CACHED=$(cat "${VERSION_FILE}")
@@ -36,7 +37,7 @@ CACHED=""
 if [ ! -x "${NEXTDNS_BIN}" ] || { [ -n "${LATEST}" ] && [ "${LATEST}" != "${CACHED}" ]; }; then
     if [ -n "${LATEST}" ]; then
         bashio::log.info "Downloading NextDNS v${LATEST}..."
-        curl -fsSL --max-time 60 \
+        curl -fsSL -H "User-Agent: HomeAssistant-NextDNS/1.0.3" --max-time 60 \
             "https://github.com/nextdns/nextdns/releases/download/v${LATEST}/nextdns_${LATEST}_linux_${NEXTDNS_ARCH}.tar.gz" \
             | tar -xz -C /data nextdns \
             && chmod +x "${NEXTDNS_BIN}" \

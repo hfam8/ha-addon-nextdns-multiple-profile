@@ -808,9 +808,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             json.dump(current, f, indent=2)
 
 def run_server():
+    HTTPServer.allow_reuse_address = True
     server = HTTPServer(('0.0.0.0', PORT), RequestHandler)
     print(f"Starting NextDNS Ingress Web UI on port {PORT}...")
     server.serve_forever()
+
 
 if __name__ == "__main__":
     run_server()

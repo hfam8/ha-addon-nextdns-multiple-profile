@@ -41,7 +41,8 @@ schema:
     - match: str
       profile_id: str
       name: str?
-image: "ghcr.io/hfam8/ha-addon-nextdns-multiple-profile/{arch}"
+
+
 
 
 

@@ -1,5 +1,10 @@
 configuration:
+  api_key:
+    name: NextDNS API Key (Optional)
+    description: >-
+      Your NextDNS API Key from my.nextdns.io → Account tab. Allows NextDNS Manager Web UI to automatically fetch your profile list into a dropdown.
   profile_id:
+
     name: Default NextDNS Profile ID
     description: >-
       Default/fallback NextDNS Profile ID for any device not explicitly assigned below.

@@ -12,11 +12,13 @@
 
 | Option | Description |
 |---|---|
+| `api_key` | (Optional) NextDNS API Key from my.nextdns.io → Account tab. Auto-populates your NextDNS profiles into dropdowns in the Ingress Web UI. |
 | `profile_id` | Fallback / default NextDNS profile ID from my.nextdns.io (e.g. `3ee52c`). Optional if `profile_assignments` is configured. |
 | `device_name` | Fallback device name shown in your NextDNS dashboard (default: `home-assistant`). |
 | `profile_assignments` | List of rules mapping specific IP addresses, subnets, or MAC addresses to specific NextDNS profiles. |
 | `log_queries` | Log every DNS query in the add-on log. Off by default — useful for troubleshooting blocked sites. |
 | `cache` | Cache DNS responses locally (10 MB). Speeds up repeated lookups, reduces round-trips to NextDNS. |
+
 
 ## NextDNS Manager (Ingress Web UI)
 

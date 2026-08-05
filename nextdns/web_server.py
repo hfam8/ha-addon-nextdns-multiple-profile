@@ -172,7 +172,7 @@ INDEX_HTML = """<!DOCTYPE html>
             letter-spacing: 0.05em;
         }
 
-        input[type="text"], select {
+        input[type="text"], input[type="password"], select {
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
@@ -183,7 +183,7 @@ INDEX_HTML = """<!DOCTYPE html>
             transition: all 0.2s ease;
         }
 
-        input[type="text"]:focus, select:focus {
+        input[type="text"]:focus, input[type="password"]:focus, select:focus {
             border-color: var(--accent-primary);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
@@ -330,6 +330,23 @@ INDEX_HTML = """<!DOCTYPE html>
             </div>
         </header>
 
+        <!-- API Key Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">NextDNS Account Integration (Optional)</div>
+                    <div class="card-description">Enter your NextDNS API Key (from my.nextdns.io → Account tab) to auto-populate your profiles.</div>
+                </div>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 3fr auto; align-items: end;">
+                <div class="form-group">
+                    <label for="api_key_input">NextDNS API Key</label>
+                    <input type="password" id="api_key_input" placeholder="e.g. 4a8b... (Optional)">
+                </div>
+                <button class="btn btn-secondary" onclick="fetchNextDNSProfiles()">Fetch NextDNS Profiles</button>
+            </div>
+        </div>
+
         <!-- Default Profile Card -->
         <div class="card">
             <div class="card-header">
@@ -339,6 +356,12 @@ INDEX_HTML = """<!DOCTYPE html>
                 </div>
             </div>
             <div class="form-grid">
+                <div class="form-group" id="default_profile_select_group" style="display:none;">
+                    <label for="default_profile_select">Select NextDNS Profile</label>
+                    <select id="default_profile_select" onchange="onDefaultProfileSelect()">
+                        <option value="">-- Choose Profile --</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="default_profile_id">NextDNS Profile ID</label>
                     <input type="text" id="default_profile_id" placeholder="e.g. 3ee52c">
@@ -361,7 +384,7 @@ INDEX_HTML = """<!DOCTYPE html>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="device_select">Discovered Device</label>
+                    <label for="device_select">Discovered Device (Omada / HA)</label>
                     <select id="device_select" onchange="onDeviceSelect()">
                         <option value="">-- Choose Discovered Device --</option>
                     </select>
@@ -369,6 +392,12 @@ INDEX_HTML = """<!DOCTYPE html>
                 <div class="form-group">
                     <label for="target_match">Target (IP / Subnet / MAC)</label>
                     <input type="text" id="target_match" placeholder="192.168.1.50">
+                </div>
+                <div class="form-group" id="profile_select_group" style="display:none;">
+                    <label for="profile_select">NextDNS Profile Dropdown</label>
+                    <select id="profile_select" onchange="onProfileSelect()">
+                        <option value="">-- Choose NextDNS Profile --</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="target_profile">NextDNS Profile ID</label>
@@ -407,6 +436,7 @@ INDEX_HTML = """<!DOCTYPE html>
     <script>
         let currentRules = [];
         let discoveredDevices = [];
+        let nextdnsProfiles = [];
 
         async function loadAll() {
             try {
@@ -420,8 +450,64 @@ INDEX_HTML = """<!DOCTYPE html>
 
                 populateDeviceDropdown();
                 populateConfig(config);
+
+                if (config.api_key) {
+                    await fetchNextDNSProfiles();
+                }
             } catch (err) {
                 console.error("Failed to load setup:", err);
+            }
+        }
+
+        async function fetchNextDNSProfiles() {
+            const apiKey = document.getElementById('api_key_input').value.trim();
+            try {
+                const res = await fetch('./api/nextdns_profiles?api_key=' + encodeURIComponent(apiKey));
+                if (res.ok) {
+                    nextdnsProfiles = await res.json();
+                    populateNextDNSProfileDropdowns();
+                }
+            } catch (err) {
+                console.warn("Could not fetch NextDNS profiles:", err);
+            }
+        }
+
+        function populateNextDNSProfileDropdowns() {
+            if (!nextdnsProfiles || nextdnsProfiles.length === 0) return;
+
+            const defSelect = document.getElementById('default_profile_select');
+            const ruleSelect = document.getElementById('profile_select');
+
+            defSelect.innerHTML = '<option value="">-- Choose Profile --</option>';
+            ruleSelect.innerHTML = '<option value="">-- Choose NextDNS Profile --</option>';
+
+            nextdnsProfiles.forEach(p => {
+                const opt1 = document.createElement('option');
+                opt1.value = p.id;
+                opt1.textContent = `${p.name} (${p.id})`;
+                defSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = p.id;
+                opt2.textContent = `${p.name} (${p.id})`;
+                ruleSelect.appendChild(opt2);
+            });
+
+            document.getElementById('default_profile_select_group').style.display = 'flex';
+            document.getElementById('profile_select_group').style.display = 'flex';
+        }
+
+        function onDefaultProfileSelect() {
+            const val = document.getElementById('default_profile_select').value;
+            if (val) {
+                document.getElementById('default_profile_id').value = val;
+            }
+        }
+
+        function onProfileSelect() {
+            const val = document.getElementById('profile_select').value;
+            if (val) {
+                document.getElementById('target_profile').value = val;
             }
         }
 
@@ -448,6 +534,7 @@ INDEX_HTML = """<!DOCTYPE html>
         }
 
         function populateConfig(config) {
+            document.getElementById('api_key_input').value = config.api_key || '';
             document.getElementById('default_profile_id').value = config.profile_id || '';
             document.getElementById('default_device_name').value = config.device_name || 'home-assistant';
 
@@ -498,6 +585,7 @@ INDEX_HTML = """<!DOCTYPE html>
             document.getElementById('target_profile').value = '';
             document.getElementById('target_name').value = '';
             document.getElementById('device_select').value = '';
+            document.getElementById('profile_select').value = '';
         }
 
         function deleteRule(idx) {
@@ -507,6 +595,7 @@ INDEX_HTML = """<!DOCTYPE html>
 
         async function saveConfig() {
             const payload = {
+                api_key: document.getElementById('api_key_input').value.trim(),
                 profile_id: document.getElementById('default_profile_id').value.trim(),
                 device_name: document.getElementById('default_device_name').value.trim() || 'home-assistant',
                 profile_assignments: currentRules
@@ -548,6 +637,8 @@ INDEX_HTML = """<!DOCTYPE html>
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         clean_path = self.path.split('?')[0]
+        query_str = self.path.split('?')[1] if '?' in self.path else ''
+        
         if clean_path in ["/", "/index.html", ""]:
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -559,6 +650,20 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(devices).encode('utf-8'))
+        elif clean_path.endswith("/api/nextdns_profiles") or clean_path == "/api/nextdns_profiles":
+            api_key = ""
+            for param in query_str.split('&'):
+                if param.startswith('api_key='):
+                    api_key = urllib.parse.unquote(param.split('api_key=')[1])
+            if not api_key:
+                config = self.get_config()
+                api_key = config.get("api_key", "")
+
+            profiles = self.get_nextdns_profiles(api_key)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(profiles).encode('utf-8'))
         elif clean_path.endswith("/api/config") or clean_path == "/api/config":
             config = self.get_config()
             self.send_response(200)
@@ -587,6 +692,28 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
         else:
             self.send_error(404, "Not Found")
+
+    def get_nextdns_profiles(self, api_key):
+        if not api_key:
+            return []
+        
+        url = "https://api.nextdns.io/profiles"
+        req = urllib.request.Request(url, headers={"X-Api-Key": api_key, "User-Agent": "HomeAssistant-NextDNS/0.9.3"})
+        profiles = []
+
+        try:
+            with urllib.request.urlopen(req, timeout=5) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
+                    for p in data.get("data", []):
+                        profiles.append({
+                            "id": p.get("id", ""),
+                            "name": p.get("name", "")
+                        })
+        except Exception as err:
+            print(f"Error querying NextDNS API: {err}")
+
+        return profiles
 
     def get_ha_devices(self):
         token = os.environ.get("SUPERVISOR_TOKEN") or os.environ.get("HASSIO_TOKEN")
@@ -627,7 +754,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return json.load(f)
             except Exception as e:
                 print(f"Error reading options.json: {e}")
-        return {"profile_id": "", "device_name": "home-assistant", "profile_assignments": []}
+        return {"api_key": "", "profile_id": "", "device_name": "home-assistant", "profile_assignments": []}
 
     def save_config(self, new_data):
         current = self.get_config()

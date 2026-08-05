@@ -1,0 +1,42 @@
+name: NextDNS
+version: "0.9.1"
+slug: nextdns
+description: Forward your network's DNS traffic through NextDNS.
+url: "https://github.com/billytkid/ha-addon-nextdns"
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+init: false
+host_network: true
+hassio_api: true
+ingress: true
+ingress_port: 8080
+panel_icon: mdi:dns
+panel_title: NextDNS Manager
+
+ports:
+  53/tcp: 53
+  53/udp: 53
+ports_description:
+  53/tcp: DNS
+  53/udp: DNS
+options:
+  profile_id: ""
+  device_name: "home-assistant"
+  log_queries: false
+  cache: false
+  profile_assignments: []
+schema:
+  profile_id: str?
+  device_name: str?
+  log_queries: bool
+  cache: bool
+  profile_assignments:
+    - match: str
+      profile_id: str
+      name: str?
+image: "ghcr.io/billytkid/ha-addon-nextdns/{arch}"
+

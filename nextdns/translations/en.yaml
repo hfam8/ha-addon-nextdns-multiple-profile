@@ -1,0 +1,38 @@
+configuration:
+  profile_id:
+    name: NextDNS Profile ID
+    description: >-
+      The ID for your NextDNS profile. Find it at my.nextdns.io → Setup tab,
+      next to "ID" (e.g. 3ee52c). Just the short code — not the full URL.
+  device_name:
+    name: Device name
+    description: >-
+      A name for this device as it will appear in your NextDNS dashboard.
+      Defaults to "home-assistant".
+  log_queries:
+    name: Log DNS queries
+    description: >-
+      Print every DNS query to the add-on log. Off by default — turn on
+      temporarily if a site is being blocked and you want to see why.
+  cache:
+    name: Cache DNS responses
+    description: >-
+      Store recent DNS responses locally (10 MB cache). Speeds up repeated
+      lookups and reduces round-trips to NextDNS. Safe to leave on.
+  profile_assignments:
+    name: Profile Assignments per Device
+    description: >-
+      Assign specific NextDNS profiles to devices by IP address, CIDR subnet, or MAC address.
+  profile_assignments.match:
+    name: Target (IP / Subnet / MAC)
+    description: >-
+      Device IP address (e.g. 192.168.1.50), subnet (e.g. 192.168.1.0/24), or MAC address (e.g. 00:1c:42:2e:60:4a).
+  profile_assignments.profile_id:
+    name: NextDNS Profile ID
+    description: >-
+      The NextDNS Profile ID to apply for this device/subnet.
+  profile_assignments.name:
+    name: Device Label (Optional)
+    description: >-
+      Custom device name shown in your NextDNS dashboard for this rule (e.g. Kids-Tablet, Husband-Laptop).
+

@@ -1,9 +1,10 @@
 configuration:
   profile_id:
-    name: NextDNS Profile ID
+    name: Default NextDNS Profile ID
     description: >-
-      The ID for your NextDNS profile. Find it at my.nextdns.io → Setup tab,
-      next to "ID" (e.g. 3ee52c). Just the short code — not the full URL.
+      Default/fallback NextDNS Profile ID for any device not explicitly assigned below.
+      Find it at my.nextdns.io → Setup tab, next to "ID" (e.g. 3ee52c).
+
   device_name:
     name: Device name
     description: >-

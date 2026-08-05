@@ -1,6 +1,12 @@
 # Changelog
 
+## [1.0.5] - 2026-08-04
+
+### Fixed
+- Updated NextDNS API Key input field to suppress browser HTTP insecure login warnings on local network IPs.
+
 ## [1.0.4] - 2026-08-04
+
 
 ### Fixed
 - Trigger instant NextDNS process reload upon clicking Save & Apply Settings in the Web UI so new profile routing rules take effect immediately.

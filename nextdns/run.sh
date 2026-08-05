@@ -67,9 +67,6 @@ fi
 
 # ── Validate config & Build arguments loop ──────────────────────────────────────
 run_nextdns() {
-    PROFILE_ID=$(bashio::config 'profile_id' || echo "")
-    DEVICE_NAME=$(bashio::config 'device_name' || echo "")
-
     HAS_PROFILES=false
     ARGS=(
         "--listen" "0.0.0.0:53"
@@ -78,39 +75,36 @@ run_nextdns() {
         "--use-hosts"
     )
 
-    # ── Add per-device profile rules ─────────────────────────────────────────────
-    if bashio::config.has_value 'profile_assignments'; then
-        _jq() {
-            echo "${1}" | base64 -d | jq -r "${2}"
-        }
-        for row in $(bashio::config 'profile_assignments' | jq -r '.[]? | @base64'); do
-            MATCH=$(_jq "${row}" '.match // empty')
-            PROF_ID=$(_jq "${row}" '.profile_id // empty')
-            NAME=$(_jq "${row}" '.name // empty')
-
-            if [ -n "${MATCH}" ] && [ -n "${PROF_ID}" ]; then
-                if [ -n "${NAME}" ]; then
-                    TARGET_SPEC="${MATCH}=${PROF_ID}/${NAME}"
-                else
-                    TARGET_SPEC="${MATCH}=${PROF_ID}"
-                fi
-                ARGS+=("--profile" "${TARGET_SPEC}")
-                bashio::log.info "Assigned Profile Rule: ${TARGET_SPEC}"
+    if [ -f "/data/options.json" ]; then
+        while IFS= read -r line; do
+            if [ -n "${line}" ]; then
+                ARGS+=("--profile" "${line}")
+                bashio::log.info "Configured Profile Rule: ${line}"
                 HAS_PROFILES=true
             fi
-        done
-    fi
-
-    # ── Add default / fallback profile ──────────────────────────────────────────
-    if [ -n "${PROFILE_ID}" ]; then
-        if [ -n "${DEVICE_NAME}" ]; then
-            DEFAULT_SPEC="${PROFILE_ID}/${DEVICE_NAME}"
-        else
-            DEFAULT_SPEC="${PROFILE_ID}"
-        fi
-        ARGS+=("--profile" "${DEFAULT_SPEC}")
-        bashio::log.info "Default Profile: ${DEFAULT_SPEC}"
-        HAS_PROFILES=true
+        done < <(python3 -c '
+import json, sys
+try:
+    with open("/data/options.json", "r") as f:
+        data = json.load(f)
+    assignments = data.get("profile_assignments", [])
+    if isinstance(assignments, list):
+        for item in assignments:
+            if isinstance(item, dict):
+                match = str(item.get("match") or "").strip()
+                prof_id = str(item.get("profile_id") or "").strip()
+                name = str(item.get("name") or "").strip()
+                if match and prof_id:
+                    spec = f"{match}={prof_id}/{name}" if name else f"{match}={prof_id}"
+                    print(spec)
+    default_prof = str(data.get("profile_id") or "").strip()
+    default_dev = str(data.get("device_name") or "").strip()
+    if default_prof:
+        spec = f"{default_prof}/{default_dev}" if default_dev else f"{default_prof}"
+        print(spec)
+except Exception as e:
+    pass
+')
     fi
 
     if [ "${HAS_PROFILES}" = false ]; then
@@ -119,16 +113,20 @@ run_nextdns() {
         return 0
     fi
 
-    bashio::config.true 'log_queries' && ARGS+=("--log-queries")
-    bashio::config.true 'cache'       && ARGS+=("--cache-size" "10MB")
+    if python3 -c 'import json; data=json.load(open("/data/options.json")); sys.exit(0 if data.get("log_queries") else 1)' 2>/dev/null; then
+        ARGS+=("--log-queries")
+    fi
+    if python3 -c 'import json; data=json.load(open("/data/options.json")); sys.exit(0 if data.get("cache") else 1)' 2>/dev/null; then
+        ARGS+=("--cache-size" "10MB")
+    fi
 
-    bashio::log.info "Starting NextDNS..."
+    bashio::log.info "Starting NextDNS binary..."
     "${NEXTDNS_BIN}" run "${ARGS[@]}"
 }
 
 while true; do
     run_nextdns
-    bashio::log.info "NextDNS binary stopped or requested reload. Re-evaluating configuration..."
+    bashio::log.info "NextDNS process stopped or requested reload. Re-evaluating configuration..."
     sleep 2
 done
 

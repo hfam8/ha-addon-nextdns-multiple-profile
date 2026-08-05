@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.8] - 2026-08-05
+
+### Fixed
+- Replaced JQ/base64 parsing in `run.sh` with a native Python JSON parser to prevent JQ numeric literal parse errors (`jq: parse error: Invalid numeric literal at EOF`) when options contain alphanumeric/hex profile IDs.
+
 ## [1.0.7] - 2026-08-05
 
 ### Fixed & Improved

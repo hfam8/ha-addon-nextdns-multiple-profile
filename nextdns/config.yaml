@@ -1,6 +1,7 @@
 name: "NextDNS (Multiple Profiles)"
-version: "1.0.0"
+version: "1.0.1"
 slug: nextdns
+
 
 
 description: Forward your network's DNS traffic through NextDNS with multi-profile and per-device routing.

@@ -154,7 +154,7 @@ INDEX_HTML = """<!DOCTYPE html>
 
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 1rem;
         }
 
@@ -330,12 +330,12 @@ INDEX_HTML = """<!DOCTYPE html>
             </div>
         </header>
 
-        <!-- API Key Card -->
+        <!-- Account / API Key Card -->
         <div class="card">
             <div class="card-header">
                 <div>
-                    <div class="card-title">NextDNS Account Integration (Optional)</div>
-                    <div class="card-description">Enter your NextDNS API Key (from my.nextdns.io → Account tab) to auto-populate your profiles.</div>
+                    <div class="card-title">NextDNS Account Integration</div>
+                    <div class="card-description">Enter your NextDNS API Key (from my.nextdns.io → Account tab) to auto-populate your profiles into dropdowns.</div>
                 </div>
             </div>
             <div class="form-grid" style="grid-template-columns: 3fr auto; align-items: end;">
@@ -343,7 +343,7 @@ INDEX_HTML = """<!DOCTYPE html>
                     <label for="api_key_input">NextDNS API Key</label>
                     <input type="password" id="api_key_input" placeholder="e.g. 4a8b... (Optional)">
                 </div>
-                <button class="btn btn-secondary" onclick="fetchNextDNSProfiles()">Fetch NextDNS Profiles</button>
+                <button class="btn btn-secondary" onclick="fetchNextDNSProfiles()">Fetch Profiles</button>
             </div>
         </div>
 
@@ -356,15 +356,9 @@ INDEX_HTML = """<!DOCTYPE html>
                 </div>
             </div>
             <div class="form-grid">
-                <div class="form-group" id="default_profile_select_group" style="display:none;">
-                    <label for="default_profile_select">Select NextDNS Profile</label>
-                    <select id="default_profile_select" onchange="onDefaultProfileSelect()">
-                        <option value="">-- Choose Profile --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="default_profile_id">NextDNS Profile ID</label>
-                    <input type="text" id="default_profile_id" placeholder="e.g. 3ee52c">
+                <div class="form-group" id="default_profile_wrapper">
+                    <label for="default_profile_input">Default NextDNS Profile</label>
+                    <input type="text" id="default_profile_input" placeholder="e.g. 3ee52c">
                 </div>
                 <div class="form-group">
                     <label for="default_device_name">Default Device Label</label>
@@ -393,15 +387,9 @@ INDEX_HTML = """<!DOCTYPE html>
                     <label for="target_match">Target (IP / Subnet / MAC)</label>
                     <input type="text" id="target_match" placeholder="192.168.1.50">
                 </div>
-                <div class="form-group" id="profile_select_group" style="display:none;">
-                    <label for="profile_select">NextDNS Profile Dropdown</label>
-                    <select id="profile_select" onchange="onProfileSelect()">
-                        <option value="">-- Choose NextDNS Profile --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="target_profile">NextDNS Profile ID</label>
-                    <input type="text" id="target_profile" placeholder="e.g. kids123">
+                <div class="form-group" id="rule_profile_wrapper">
+                    <label for="target_profile_input">NextDNS Profile</label>
+                    <input type="text" id="target_profile_input" placeholder="e.g. kids123">
                 </div>
                 <div class="form-group">
                     <label for="target_name">Device Label</label>
@@ -461,60 +449,67 @@ INDEX_HTML = """<!DOCTYPE html>
 
         async function fetchNextDNSProfiles() {
             const apiKey = document.getElementById('api_key_input').value.trim();
+            if (!apiKey) return;
+
             try {
                 const res = await fetch('./api/nextdns_profiles?api_key=' + encodeURIComponent(apiKey));
                 if (res.ok) {
                     nextdnsProfiles = await res.json();
-                    populateNextDNSProfileDropdowns();
+                    renderProfileControls();
                 }
             } catch (err) {
                 console.warn("Could not fetch NextDNS profiles:", err);
             }
         }
 
-        function populateNextDNSProfileDropdowns() {
+        function renderProfileControls() {
             if (!nextdnsProfiles || nextdnsProfiles.length === 0) return;
 
-            const defSelect = document.getElementById('default_profile_select');
-            const ruleSelect = document.getElementById('profile_select');
+            const curDefVal = getProfileValue('default_profile_input');
+            const curRuleVal = getProfileValue('target_profile_input');
 
-            defSelect.innerHTML = '<option value="">-- Choose Profile --</option>';
-            ruleSelect.innerHTML = '<option value="">-- Choose NextDNS Profile --</option>';
-
+            // Default Profile Single Control
+            const defWrapper = document.getElementById('default_profile_wrapper');
+            let defHtml = '<label for="default_profile_input">Default NextDNS Profile</label>';
+            defHtml += '<select id="default_profile_input">';
+            defHtml += '<option value="">-- Select NextDNS Profile --</option>';
             nextdnsProfiles.forEach(p => {
-                const opt1 = document.createElement('option');
-                opt1.value = p.id;
-                opt1.textContent = `${p.name} (${p.id})`;
-                defSelect.appendChild(opt1);
-
-                const opt2 = document.createElement('option');
-                opt2.value = p.id;
-                opt2.textContent = `${p.name} (${p.id})`;
-                ruleSelect.appendChild(opt2);
+                const selected = (p.id === curDefVal) ? 'selected' : '';
+                defHtml += `<option value="${escapeHtml(p.id)}" ${selected}>${escapeHtml(p.name)} (${escapeHtml(p.id)})</option>`;
             });
+            defHtml += '</select>';
+            defWrapper.innerHTML = defHtml;
 
-            document.getElementById('default_profile_select_group').style.display = 'flex';
-            document.getElementById('profile_select_group').style.display = 'flex';
+            // Rule Profile Single Control
+            const ruleWrapper = document.getElementById('rule_profile_wrapper');
+            let ruleHtml = '<label for="target_profile_input">NextDNS Profile</label>';
+            ruleHtml += '<select id="target_profile_input">';
+            ruleHtml += '<option value="">-- Select NextDNS Profile --</option>';
+            nextdnsProfiles.forEach(p => {
+                const selected = (p.id === curRuleVal) ? 'selected' : '';
+                ruleHtml += `<option value="${escapeHtml(p.id)}" ${selected}>${escapeHtml(p.name)} (${escapeHtml(p.id)})</option>`;
+            });
+            ruleHtml += '</select>';
+            ruleWrapper.innerHTML = ruleHtml;
         }
 
-        function onDefaultProfileSelect() {
-            const val = document.getElementById('default_profile_select').value;
-            if (val) {
-                document.getElementById('default_profile_id').value = val;
-            }
-        }
-
-        function onProfileSelect() {
-            const val = document.getElementById('profile_select').value;
-            if (val) {
-                document.getElementById('target_profile').value = val;
-            }
+        function getProfileValue(elementId) {
+            const el = document.getElementById(elementId);
+            return el ? el.value.trim() : '';
         }
 
         function populateDeviceDropdown() {
             const select = document.getElementById('device_select');
             select.innerHTML = '<option value="">-- Choose Discovered Device (Omada / HA) --</option>';
             
+            if (!discoveredDevices || discoveredDevices.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "No devices detected automatically - enter IP manually below";
+                select.appendChild(opt);
+                return;
+            }
+
             discoveredDevices.forEach((dev, idx) => {
                 const opt = document.createElement('option');
                 opt.value = idx;
@@ -535,7 +530,10 @@ INDEX_HTML = """<!DOCTYPE html>
 
         function populateConfig(config) {
             document.getElementById('api_key_input').value = config.api_key || '';
-            document.getElementById('default_profile_id').value = config.profile_id || '';
+            
+            const defInput = document.getElementById('default_profile_input');
+            if (defInput) defInput.value = config.profile_id || '';
+            
             document.getElementById('default_device_name').value = config.device_name || 'home-assistant';
 
             currentRules = config.profile_assignments || [];
@@ -551,6 +549,9 @@ INDEX_HTML = """<!DOCTYPE html>
 
             container.innerHTML = '';
             currentRules.forEach((rule, idx) => {
+                const profObj = nextdnsProfiles.find(p => p.id === rule.profile_id);
+                const profLabel = profObj ? `${profObj.name} (${profObj.id})` : rule.profile_id;
+
                 const div = document.createElement('div');
                 div.className = 'rule-item';
                 div.innerHTML = `
@@ -559,7 +560,7 @@ INDEX_HTML = """<!DOCTYPE html>
                         <span class="rule-sub">Target: ${escapeHtml(rule.match)}</span>
                     </div>
                     <div>
-                        <span class="badge-chip">Profile: ${escapeHtml(rule.profile_id)}</span>
+                        <span class="badge-chip">Profile: ${escapeHtml(profLabel)}</span>
                     </div>
                     <div></div>
                     <button class="btn btn-danger" onclick="deleteRule(${idx})">✕</button>
@@ -570,11 +571,11 @@ INDEX_HTML = """<!DOCTYPE html>
 
         function addRule() {
             const match = document.getElementById('target_match').value.trim();
-            const profile_id = document.getElementById('target_profile').value.trim();
+            const profile_id = getProfileValue('target_profile_input');
             const name = document.getElementById('target_name').value.trim();
 
             if (!match || !profile_id) {
-                alert("Please enter both a Target (IP/MAC) and a NextDNS Profile ID.");
+                alert("Please enter both a Target (IP/MAC) and select a NextDNS Profile.");
                 return;
             }
 
@@ -582,10 +583,10 @@ INDEX_HTML = """<!DOCTYPE html>
             renderRules();
 
             document.getElementById('target_match').value = '';
-            document.getElementById('target_profile').value = '';
+            const pInput = document.getElementById('target_profile_input');
+            if (pInput) pInput.value = '';
             document.getElementById('target_name').value = '';
             document.getElementById('device_select').value = '';
-            document.getElementById('profile_select').value = '';
         }
 
         function deleteRule(idx) {
@@ -596,7 +597,7 @@ INDEX_HTML = """<!DOCTYPE html>
         async function saveConfig() {
             const payload = {
                 api_key: document.getElementById('api_key_input').value.trim(),
-                profile_id: document.getElementById('default_profile_id').value.trim(),
+                profile_id: getProfileValue('default_profile_input'),
                 device_name: document.getElementById('default_device_name').value.trim() || 'home-assistant',
                 profile_assignments: currentRules
             };
@@ -698,7 +699,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             return []
         
         url = "https://api.nextdns.io/profiles"
-        req = urllib.request.Request(url, headers={"X-Api-Key": api_key, "User-Agent": "HomeAssistant-NextDNS/0.9.3"})
+        req = urllib.request.Request(url, headers={"X-Api-Key": api_key, "User-Agent": "HomeAssistant-NextDNS/1.0.1"})
         profiles = []
 
         try:
@@ -723,28 +724,72 @@ class RequestHandler(BaseHTTPRequestHandler):
         url = "http://supervisor/core/api/states"
         req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
         devices = []
+        seen_keys = set()
+
+        ip_regex = re.compile(r'\b(?:10|192\.168|172\.(?:1[6-9]|2[0-9]|3[01]))\.(?:[0-9]{1,3})\.(?:[0-9]{1,3})\b')
+        mac_regex = re.compile(r'\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b')
 
         try:
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=8) as response:
                 if response.status == 200:
                     states = json.loads(response.read().decode('utf-8'))
                     for entity in states:
                         entity_id = entity.get("entity_id", "")
-                        if entity_id.startswith("device_tracker."):
-                            attrs = entity.get("attributes", {})
-                            ip = attrs.get("ip") or attrs.get("ip_address") or ""
-                            mac = attrs.get("mac") or attrs.get("mac_address") or ""
-                            name = attrs.get("friendly_name") or entity_id.replace("device_tracker.", "").replace("_", " ").title()
+                        attrs = entity.get("attributes", {})
+                        state = str(entity.get("state", ""))
 
-                            devices.append({
-                                "entity_id": entity_id,
-                                "name": name,
-                                "ip": ip,
-                                "mac": mac
-                            })
+                        name = attrs.get("friendly_name") or entity_id.split(".")[-1].replace("_", " ").title()
+                        
+                        ip = ""
+                        mac = ""
+
+                        # 1. Search common attribute keys
+                        for key in ["ip", "ip_address", "client_ip", "host_ip", "assigned_ip", "current_ip_address", "wan_ip"]:
+                            val = str(attrs.get(key, ""))
+                            m = ip_regex.search(val)
+                            if m:
+                                ip = m.group(0)
+                                break
+
+                        for key in ["mac", "mac_address", "client_mac", "hardware_address"]:
+                            val = str(attrs.get(key, ""))
+                            m = mac_regex.search(val)
+                            if m:
+                                mac = m.group(0)
+                                break
+
+                        # 2. Check if state itself is an IP
+                        if not ip:
+                            m = ip_regex.search(state)
+                            if m:
+                                ip = m.group(0)
+
+                        # 3. Deep search all attributes text if still not found
+                        if not ip and not mac:
+                            attrs_str = json.dumps(attrs)
+                            m_ip = ip_regex.search(attrs_str)
+                            if m_ip:
+                                ip = m_ip.group(0)
+                            m_mac = mac_regex.search(attrs_str)
+                            if m_mac:
+                                mac = m_mac.group(0)
+
+                        # Add if valid target found and not duplicate
+                        if ip or mac:
+                            key_pair = (ip, mac, name)
+                            if key_pair not in seen_keys:
+                                seen_keys.add(key_pair)
+                                devices.append({
+                                    "entity_id": entity_id,
+                                    "name": name,
+                                    "ip": ip,
+                                    "mac": mac
+                                })
         except Exception as err:
             print(f"Error querying HA states: {err}")
 
+        # Sort alphabetically by device name
+        devices.sort(key=lambda x: x["name"].lower())
         return devices
 
     def get_config(self):

@@ -1,6 +1,13 @@
 # Changelog
 
+## [1.0.1] - 2026-08-04
+
+### Fixed & Improved
+- Cleaned up NextDNS Profile selection in Ingress Web UI (removed redundant duplicate profile fields).
+- Expanded Home Assistant device scanner to perform deep attribute inspection for Omada Controller entities and network clients.
+
 ## [1.0.0] - 2026-08-04
+
 
 
 ### Added

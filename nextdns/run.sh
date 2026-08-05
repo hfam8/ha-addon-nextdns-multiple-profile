@@ -27,29 +27,43 @@ case "${BUILD_ARCH}" in
 esac
 
 # ── Download latest NextDNS if needed ─────────────────────────────────────────
-LATEST=$(curl -fsSL -H "User-Agent: HomeAssistant-NextDNS/1.0.3" --max-time 10 \
-    "https://api.github.com/repos/nextdns/nextdns/releases/latest" \
-    | jq -r '.tag_name // empty' | tr -d 'v') || true
-
 CACHED=""
 [ -f "${VERSION_FILE}" ] && CACHED=$(cat "${VERSION_FILE}")
 
-if [ ! -x "${NEXTDNS_BIN}" ] || { [ -n "${LATEST}" ] && [ "${LATEST}" != "${CACHED}" ]; }; then
-    if [ -n "${LATEST}" ]; then
-        bashio::log.info "Downloading NextDNS v${LATEST}..."
-        curl -fsSL -H "User-Agent: HomeAssistant-NextDNS/1.0.3" --max-time 60 \
-            "https://github.com/nextdns/nextdns/releases/download/v${LATEST}/nextdns_${LATEST}_linux_${NEXTDNS_ARCH}.tar.gz" \
-            | tar -xz -C /data nextdns \
-            && chmod +x "${NEXTDNS_BIN}" \
-            && echo "${LATEST}" > "${VERSION_FILE}"
-        bashio::log.info "NextDNS v${LATEST} ready."
+LATEST=$(curl -fsSL -H "User-Agent: Mozilla/5.0" -w "%{url_effective}" -o /dev/null --max-time 10 "https://github.com/nextdns/nextdns/releases/latest" | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | tr -d 'v' || true)
+
+if [ -z "${LATEST}" ]; then
+    LATEST=$(curl -fsSL -H "User-Agent: HomeAssistant-NextDNS/1.0.6" --max-time 10 \
+        "https://api.github.com/repos/nextdns/nextdns/releases/latest" \
+        | jq -r '.tag_name // empty' | tr -d 'v' || true)
+fi
+
+if [ -z "${LATEST}" ]; then
+    if [ -n "${CACHED}" ]; then
+        LATEST="${CACHED}"
     else
-        bashio::log.fatal "No cached binary and cannot reach GitHub. Cannot start."
+        LATEST="1.43.0"
+    fi
+fi
+
+if [ ! -x "${NEXTDNS_BIN}" ] || [ "${LATEST}" != "${CACHED}" ]; then
+    bashio::log.info "Downloading NextDNS v${LATEST}..."
+    if curl -fsSL -H "User-Agent: Mozilla/5.0" --max-time 60 \
+        "https://github.com/nextdns/nextdns/releases/download/v${LATEST}/nextdns_${LATEST}_linux_${NEXTDNS_ARCH}.tar.gz" \
+        | tar -xz -C /data nextdns \
+        && chmod +x "${NEXTDNS_BIN}" \
+        && echo "${LATEST}" > "${VERSION_FILE}"; then
+        bashio::log.info "NextDNS v${LATEST} ready."
+    elif [ -x "${NEXTDNS_BIN}" ]; then
+        bashio::log.warning "Could not fetch new version from GitHub. Using existing NextDNS binary v${CACHED}."
+    else
+        bashio::log.fatal "Could not download NextDNS binary from GitHub."
         exit 1
     fi
 else
     bashio::log.info "NextDNS v${CACHED} is up to date."
 fi
+
 
 # ── Validate config & Build arguments ───────────────────────────────────────
 PROFILE_ID=$(bashio::config 'profile_id')

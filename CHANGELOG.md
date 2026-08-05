@@ -1,6 +1,12 @@
 # Changelog
 
+## [1.0.6] - 2026-08-04
+
+### Security & UI
+- Applied CSS text-security masking (`••••••••`) to the NextDNS API Key field so characters remain visually hidden on screen while preventing browser HTTP password warning popups.
+
 ## [1.0.5] - 2026-08-04
+
 
 ### Fixed
 - Updated NextDNS API Key input field to suppress browser HTTP insecure login warnings on local network IPs.

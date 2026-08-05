@@ -341,8 +341,9 @@ INDEX_HTML = """<!DOCTYPE html>
             <div class="form-grid" style="grid-template-columns: 3fr auto; align-items: end;">
                 <div class="form-group">
                     <label for="api_key_input">NextDNS API Key</label>
-                    <input type="text" id="api_key_input" autocomplete="off" spellcheck="false" placeholder="e.g. 4a8b... (Optional)">
+                    <input type="text" id="api_key_input" autocomplete="new-password" spellcheck="false" style="-webkit-text-security: disk; text-security: disk;" placeholder="e.g. 4a8b... (Optional)">
                 </div>
+
 
                 <button class="btn btn-secondary" onclick="fetchNextDNSProfiles()">Fetch Profiles</button>
             </div>

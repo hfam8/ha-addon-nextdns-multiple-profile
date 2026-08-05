@@ -1,6 +1,14 @@
 # Changelog
 
+## [0.9.2] - 2026-08-04
+
+### Added
+- Multi-profile support for assigning specific NextDNS profiles to devices by IP address, CIDR subnet, or MAC address.
+- Built-in NextDNS Manager Ingress Web UI featuring automatic device discovery for TP-Link Omada and network clients.
+- Updated field labels clarifying Default/Fallback profile behavior.
+
 ## [0.9.0] - 2026-05-15
+
 
 > Pre-release. Core functionality is working — DNS traffic is forwarded through NextDNS with device identification.
 

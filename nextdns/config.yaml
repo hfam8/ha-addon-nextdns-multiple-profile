@@ -1,6 +1,7 @@
 name: "NextDNS (Multiple Profiles)"
-version: "0.9.1"
+version: "0.9.2"
 slug: nextdns
+
 description: Forward your network's DNS traffic through NextDNS with multi-profile and per-device routing.
 url: "https://github.com/hfam8/ha-addon-nextdns-multiple-profile"
 

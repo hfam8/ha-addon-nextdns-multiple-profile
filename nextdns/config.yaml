@@ -1,5 +1,5 @@
 name: "NextDNS (Multiple Profiles)"
-version: "1.0.6"
+version: "1.0.7"
 slug: nextdns
 
 
@@ -46,8 +46,8 @@ schema:
   api_key: str?
   profile_id: str?
   device_name: str?
-  log_queries: bool
-  cache: bool
+  log_queries: bool?
+  cache: bool?
   profile_assignments:
     - match: str
       profile_id: str

@@ -65,61 +65,70 @@ else
 fi
 
 
-# ── Validate config & Build arguments ───────────────────────────────────────
-PROFILE_ID=$(bashio::config 'profile_id')
-DEVICE_NAME=$(bashio::config 'device_name')
+# ── Validate config & Build arguments loop ──────────────────────────────────────
+run_nextdns() {
+    PROFILE_ID=$(bashio::config 'profile_id' || echo "")
+    DEVICE_NAME=$(bashio::config 'device_name' || echo "")
 
-HAS_PROFILES=false
-ARGS=(
-    "--listen" "0.0.0.0:53"
-    "--report-client-info"
-    "--bogus-priv"
-    "--use-hosts"
-)
+    HAS_PROFILES=false
+    ARGS=(
+        "--listen" "0.0.0.0:53"
+        "--report-client-info"
+        "--bogus-priv"
+        "--use-hosts"
+    )
 
-# ── Add per-device profile rules ─────────────────────────────────────────────
-if bashio::config.has_value 'profile_assignments'; then
-    _jq() {
-        echo "${1}" | base64 --decode | jq -r "${2}"
-    }
-    for row in $(bashio::config 'profile_assignments' | jq -r '.[]? | @base64'); do
-        MATCH=$(_jq "${row}" '.match // empty')
-        PROF_ID=$(_jq "${row}" '.profile_id // empty')
-        NAME=$(_jq "${row}" '.name // empty')
+    # ── Add per-device profile rules ─────────────────────────────────────────────
+    if bashio::config.has_value 'profile_assignments'; then
+        _jq() {
+            echo "${1}" | base64 -d | jq -r "${2}"
+        }
+        for row in $(bashio::config 'profile_assignments' | jq -r '.[]? | @base64'); do
+            MATCH=$(_jq "${row}" '.match // empty')
+            PROF_ID=$(_jq "${row}" '.profile_id // empty')
+            NAME=$(_jq "${row}" '.name // empty')
 
-        if [ -n "${MATCH}" ] && [ -n "${PROF_ID}" ]; then
-            if [ -n "${NAME}" ]; then
-                TARGET_SPEC="${MATCH}=${PROF_ID}/${NAME}"
-            else
-                TARGET_SPEC="${MATCH}=${PROF_ID}"
+            if [ -n "${MATCH}" ] && [ -n "${PROF_ID}" ]; then
+                if [ -n "${NAME}" ]; then
+                    TARGET_SPEC="${MATCH}=${PROF_ID}/${NAME}"
+                else
+                    TARGET_SPEC="${MATCH}=${PROF_ID}"
+                fi
+                ARGS+=("--profile" "${TARGET_SPEC}")
+                bashio::log.info "Assigned Profile Rule: ${TARGET_SPEC}"
+                HAS_PROFILES=true
             fi
-            ARGS+=("--profile" "${TARGET_SPEC}")
-            bashio::log.info "Assigned Profile Rule: ${TARGET_SPEC}"
-            HAS_PROFILES=true
-        fi
-    done
-fi
-
-
-# ── Add default / fallback profile ──────────────────────────────────────────
-if bashio::var.is_not_empty "${PROFILE_ID}"; then
-    if bashio::var.is_not_empty "${DEVICE_NAME}"; then
-        DEFAULT_SPEC="${PROFILE_ID}/${DEVICE_NAME}"
-    else
-        DEFAULT_SPEC="${PROFILE_ID}"
+        done
     fi
-    ARGS+=("--profile" "${DEFAULT_SPEC}")
-    bashio::log.info "Default Profile: ${DEFAULT_SPEC}"
-    HAS_PROFILES=true
-fi
 
-if [ "${HAS_PROFILES}" = false ]; then
-    bashio::log.fatal "No NextDNS profiles configured. Please set a profile_id or add rules to profile_assignments in Configuration."
-    exit 1
-fi
+    # ── Add default / fallback profile ──────────────────────────────────────────
+    if [ -n "${PROFILE_ID}" ]; then
+        if [ -n "${DEVICE_NAME}" ]; then
+            DEFAULT_SPEC="${PROFILE_ID}/${DEVICE_NAME}"
+        else
+            DEFAULT_SPEC="${PROFILE_ID}"
+        fi
+        ARGS+=("--profile" "${DEFAULT_SPEC}")
+        bashio::log.info "Default Profile: ${DEFAULT_SPEC}"
+        HAS_PROFILES=true
+    fi
 
-bashio::config.true 'log_queries' && ARGS+=("--log-queries")
-bashio::config.true 'cache'       && ARGS+=("--cache-size" "10MB")
+    if [ "${HAS_PROFILES}" = false ]; then
+        bashio::log.warning "No NextDNS profiles configured yet. Waiting for configuration from Web UI or HA Config..."
+        sleep 5
+        return 0
+    fi
 
-exec "${NEXTDNS_BIN}" run "${ARGS[@]}"
+    bashio::config.true 'log_queries' && ARGS+=("--log-queries")
+    bashio::config.true 'cache'       && ARGS+=("--cache-size" "10MB")
+
+    bashio::log.info "Starting NextDNS..."
+    "${NEXTDNS_BIN}" run "${ARGS[@]}"
+}
+
+while true; do
+    run_nextdns
+    bashio::log.info "NextDNS binary stopped or requested reload. Re-evaluating configuration..."
+    sleep 2
+done
 

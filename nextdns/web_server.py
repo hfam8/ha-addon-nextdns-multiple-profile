@@ -500,6 +500,12 @@ INDEX_HTML = """<!DOCTYPE html>
             return el ? el.value.trim() : '';
         }
 
+        function isMacAddress(str) {
+            if (!str) return false;
+            const clean = String(str).replace(/[:-]/g, '').trim();
+            return clean.length === 12 && /^[0-9A-Fa-f]{12}$/.test(clean);
+        }
+
         function populateDeviceDropdown() {
             const select = document.getElementById('device_select');
             select.innerHTML = '<option value="">-- Choose Discovered Device (Omada / HA) --</option>';
@@ -515,7 +521,22 @@ INDEX_HTML = """<!DOCTYPE html>
             discoveredDevices.forEach((dev, idx) => {
                 const opt = document.createElement('option');
                 opt.value = idx;
-                opt.textContent = `${dev.name} (${dev.ip || dev.mac || 'No IP'})`;
+                
+                let displayName = dev.name;
+                if (isMacAddress(displayName)) {
+                    displayName = dev.ip ? `Device ${dev.ip}` : dev.mac;
+                }
+
+                let label = "";
+                if (dev.ip) {
+                    label = `${displayName} (${dev.ip})`;
+                } else if (dev.mac) {
+                    label = `${displayName} [MAC: ${dev.mac}]`;
+                } else {
+                    label = displayName;
+                }
+
+                opt.textContent = label;
                 select.appendChild(opt);
             });
         }
@@ -526,8 +547,16 @@ INDEX_HTML = """<!DOCTYPE html>
             if (idx === "") return;
 
             const dev = discoveredDevices[idx];
+
+            // Always prefer IP address over MAC address for the Target field
             document.getElementById('target_match').value = dev.ip || dev.mac || '';
-            document.getElementById('target_name').value = dev.name;
+
+            // Format human-friendly device label
+            let label = dev.name;
+            if (!label || isMacAddress(label)) {
+                label = dev.ip ? `Device ${dev.ip}` : (dev.mac || 'Network Device');
+            }
+            document.getElementById('target_name').value = label;
         }
 
         function populateConfig(config) {
@@ -725,11 +754,16 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         url = "http://supervisor/core/api/states"
         req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-        devices = []
-        seen_keys = set()
+        raw_devices = []
 
         ip_regex = re.compile(r'\b(?:10|192\.168|172\.(?:1[6-9]|2[0-9]|3[01]))\.(?:[0-9]{1,3})\.(?:[0-9]{1,3})\b')
         mac_regex = re.compile(r'\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b')
+
+        def is_mac(s):
+            if not s:
+                return True
+            clean = str(s).replace(":", "").replace("-", "").replace(".", "").strip()
+            return len(clean) == 12 and all(c in "0123456789abcdefABCDEF" for c in clean)
 
         try:
             with urllib.request.urlopen(req, timeout=8) as response:
@@ -740,19 +774,18 @@ class RequestHandler(BaseHTTPRequestHandler):
                         attrs = entity.get("attributes", {})
                         state = str(entity.get("state", ""))
 
-                        name = attrs.get("friendly_name") or entity_id.split(".")[-1].replace("_", " ").title()
-                        
                         ip = ""
                         mac = ""
 
-                        # 1. Search common attribute keys
-                        for key in ["ip", "ip_address", "client_ip", "host_ip", "assigned_ip", "current_ip_address", "wan_ip"]:
+                        # 1. Search common attribute keys for IP
+                        for key in ["ip", "ip_address", "client_ip", "host_ip", "assigned_ip", "current_ip_address", "wan_ip", "ipv4", "addresses"]:
                             val = str(attrs.get(key, ""))
                             m = ip_regex.search(val)
                             if m:
                                 ip = m.group(0)
                                 break
 
+                        # 2. Search common attribute keys for MAC
                         for key in ["mac", "mac_address", "client_mac", "hardware_address"]:
                             val = str(attrs.get(key, ""))
                             m = mac_regex.search(val)
@@ -760,39 +793,89 @@ class RequestHandler(BaseHTTPRequestHandler):
                                 mac = m.group(0)
                                 break
 
-                        # 2. Check if state itself is an IP
+                        # 3. Check if state itself is an IP
                         if not ip:
                             m = ip_regex.search(state)
                             if m:
                                 ip = m.group(0)
 
-                        # 3. Deep search all attributes text if still not found
-                        if not ip and not mac:
-                            attrs_str = json.dumps(attrs)
+                        # 4. Deep search attributes for IP / MAC if still missing
+                        attrs_str = json.dumps(attrs)
+                        if not ip:
                             m_ip = ip_regex.search(attrs_str)
                             if m_ip:
                                 ip = m_ip.group(0)
+                        if not mac:
                             m_mac = mac_regex.search(attrs_str)
                             if m_mac:
                                 mac = m_mac.group(0)
 
-                        # Add if valid target found and not duplicate
-                        if ip or mac:
-                            key_pair = (ip, mac, name)
-                            if key_pair not in seen_keys:
-                                seen_keys.add(key_pair)
-                                devices.append({
-                                    "entity_id": entity_id,
-                                    "name": name,
-                                    "ip": ip,
-                                    "mac": mac
-                                })
+                        if not ip and not mac:
+                            continue
+
+                        # Extract best human device name (prefer hostnames / friendly names over raw MACs)
+                        name_candidates = [
+                            attrs.get("hostname"),
+                            attrs.get("host_name"),
+                            attrs.get("dhcp_name"),
+                            attrs.get("client_name"),
+                            attrs.get("device_name"),
+                            attrs.get("name"),
+                            attrs.get("friendly_name")
+                        ]
+
+                        name = ""
+                        for cand in name_candidates:
+                            if cand and not is_mac(cand):
+                                name = str(cand).strip()
+                                break
+
+                        if not name:
+                            fname = attrs.get("friendly_name") or entity_id.split(".")[-1].replace("_", " ").title()
+                            name = str(fname).strip()
+
+                        raw_devices.append({
+                            "entity_id": entity_id,
+                            "name": name,
+                            "ip": ip,
+                            "mac": mac
+                        })
         except Exception as err:
             print(f"Error querying HA states: {err}")
 
-        # Sort alphabetically by device name
-        devices.sort(key=lambda x: x["name"].lower())
-        return devices
+        # Consolidate / merge devices sharing the same MAC or IP to combine IP and Name
+        by_mac = {}
+        by_ip = {}
+
+        for d in raw_devices:
+            mac_key = d["mac"].upper().replace(":", "").replace("-", "") if d["mac"] else ""
+            ip_key = d["ip"]
+
+            if mac_key:
+                if mac_key not in by_mac:
+                    by_mac[mac_key] = d
+                else:
+                    existing = by_mac[mac_key]
+                    if not existing["ip"] and d["ip"]:
+                        existing["ip"] = d["ip"]
+                    if is_mac(existing["name"]) and not is_mac(d["name"]):
+                        existing["name"] = d["name"]
+            elif ip_key:
+                if ip_key not in by_ip:
+                    by_ip[ip_key] = d
+                else:
+                    existing = by_ip[ip_key]
+                    if is_mac(existing["name"]) and not is_mac(d["name"]):
+                        existing["name"] = d["name"]
+
+        merged_devices = list(by_mac.values())
+        for ip, dev in by_ip.items():
+            if not any(d["ip"] == ip for d in merged_devices):
+                merged_devices.append(dev)
+
+        # Prioritize devices with IP addresses, then sort alphabetically by Name
+        merged_devices.sort(key=lambda x: (0 if x["ip"] else 1, x["name"].lower()))
+        return merged_devices
 
     def get_config(self):
         if os.path.exists(OPTIONS_FILE):
@@ -806,8 +889,48 @@ class RequestHandler(BaseHTTPRequestHandler):
     def save_config(self, new_data):
         current = self.get_config()
         current.update(new_data)
+
+        # Ensure default values for all schema fields
+        current.setdefault("api_key", "")
+        current.setdefault("profile_id", "")
+        current.setdefault("device_name", "home-assistant")
+        current.setdefault("log_queries", False)
+        current.setdefault("cache", False)
+
+        clean_assignments = []
+        for rule in current.get("profile_assignments", []):
+            if isinstance(rule, dict) and rule.get("match") and rule.get("profile_id"):
+                clean_assignments.append({
+                    "match": str(rule.get("match")).strip(),
+                    "profile_id": str(rule.get("profile_id")).strip(),
+                    "name": str(rule.get("name") or "").strip()
+                })
+        current["profile_assignments"] = clean_assignments
+
         with open(OPTIONS_FILE, 'w') as f:
             json.dump(current, f, indent=2)
+
+        # Notify Home Assistant Supervisor API so the HA Configuration tab updates
+        token = os.environ.get("SUPERVISOR_TOKEN") or os.environ.get("HASSIO_TOKEN")
+        if token:
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "X-Supervisor-Token": token,
+                "Content-Type": "application/json"
+            }
+            payload = json.dumps({"options": current}).encode('utf-8')
+            for endpoint in ["http://supervisor/addons/self/options", "http://supervisor/addons/nextdns/options"]:
+                try:
+                    req = urllib.request.Request(endpoint, data=payload, headers=headers, method="POST")
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        res_data = resp.read().decode('utf-8')
+                        print(f"HA Supervisor options updated successfully via {endpoint} (HTTP {resp.status}): {res_data}")
+                        break
+                except urllib.error.HTTPError as he:
+                    err_body = he.read().decode('utf-8') if he.fp else str(he)
+                    print(f"Notice: Supervisor API {endpoint} HTTPError {he.code}: {err_body}")
+                except Exception as e:
+                    print(f"Notice: Could not sync options via {endpoint}: {e}")
 
         # Restart nextdns binary to apply new profile rules immediately
         print("Saving configuration and triggering NextDNS process restart...")

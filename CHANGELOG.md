@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.7] - 2026-08-05
+
+### Fixed & Improved
+- Fixed `base64: unrecognized option: decode` error by replacing `--decode` with `-d` for Alpine/BusyBox compatibility.
+- Fixed `bashio::var.is_not_empty: command not found` error in `run.sh` that was causing add-on crash loops.
+- Fixed profile rules persistence by adding Supervisor REST API option synchronization and continuous process reload handling.
+- Enhanced device auto-discovery to prioritize IPv4 addresses and human device names over raw MAC strings.
+
 ## [1.0.6] - 2026-08-04
 
 ### Security & UI

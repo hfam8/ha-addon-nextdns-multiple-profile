@@ -1,5 +1,5 @@
 name: "NextDNS (Multiple Profiles)"
-version: "1.0.1"
+version: "1.0.2"
 slug: nextdns
 
 
@@ -18,6 +18,8 @@ arch:
 init: false
 host_network: true
 hassio_api: true
+homeassistant_api: true
+hassio_role: manager
 ingress: true
 ingress_port: 8080
 panel_icon: mdi:dns

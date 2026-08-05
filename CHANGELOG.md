@@ -1,6 +1,12 @@
 # Changelog
 
+## [1.0.2] - 2026-08-04
+
+### Fixed & Improved
+- Added `homeassistant_api: true` and `hassio_role: manager` permissions to allow the Web UI to fetch Home Assistant core entity states for device auto-discovery.
+
 ## [1.0.1] - 2026-08-04
+
 
 ### Fixed & Improved
 - Cleaned up NextDNS Profile selection in Ingress Web UI (removed redundant duplicate profile fields).

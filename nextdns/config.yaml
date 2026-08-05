@@ -2,7 +2,8 @@ name: NextDNS
 version: "0.9.1"
 slug: nextdns
 description: Forward your network's DNS traffic through NextDNS.
-url: "https://github.com/hfam8/ha-addon-nextdns"
+url: "https://github.com/hfam8/ha-addon-nextdns-multiple-profile"
+
 
 arch:
   - aarch64
@@ -39,6 +40,7 @@ schema:
     - match: str
       profile_id: str
       name: str?
-image: "ghcr.io/hfam8/ha-addon-nextdns/{arch}"
+image: "ghcr.io/hfam8/ha-addon-nextdns-multiple-profile/{arch}"
+
 
 

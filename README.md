@@ -46,3 +46,8 @@ Point your router's primary DNS server (DHCP DNS) to your Home Assistant IP addr
 
 `aarch64` · `amd64` · `armhf` · `armv7` · `i386`
 
+## Credits & Acknowledgements
+
+This add-on is an enhanced multi-profile version based on the original [ha-addon-nextdns](https://github.com/billytkid/ha-addon-nextdns) created by [@billytkid](https://github.com/billytkid).
+
+

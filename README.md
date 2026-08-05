@@ -4,7 +4,7 @@ Run the [NextDNS](https://nextdns.io) DNS client as a Home Assistant add-on for 
 
 [![Add to Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fhfam8%2Fha-addon-nextdns-multiple-profile)
 
-## Installation
+## Installation & Setup
 
 1. Click the button above, or manually add this repository in Home Assistant:
    **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
@@ -12,9 +12,13 @@ Run the [NextDNS](https://nextdns.io) DNS client as a Home Assistant add-on for 
    https://github.com/hfam8/ha-addon-nextdns-multiple-profile
    ```
 
-2. Find **NextDNS** in the add-on store and click **Install**.
-3. Go to the **Configuration** tab and enter your **NextDNS Profile ID** from [my.nextdns.io](https://my.nextdns.io) → Setup tab.
-4. Click **Start**.
+2. Find **NextDNS (Multiple Profiles)** in the add-on store and click **Install**.
+3. **Start the Add-on**: Click **START** first (the NextDNS Manager Web UI runs inside the active add-on container).
+4. **Open Web UI Configuration**: Click **OPEN WEB UI** (or select **NextDNS Manager** in the Home Assistant sidebar) to visually assign NextDNS profiles to discovered Omada devices!
+
+> [!NOTE]
+> You must **Start** the add-on before opening the Web UI. Once started, click **OPEN WEB UI** to configure your NextDNS profiles and device assignments using dropdown menus.
+
 
 ## Configuration
 

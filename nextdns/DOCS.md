@@ -2,11 +2,13 @@
 
 ## Setup
 
-1. Sign up at [my.nextdns.io](https://my.nextdns.io) and create a configuration.
-2. Copy your **Profile ID** from the Setup tab (e.g. `3ee52c`).
-3. In the add-on **Configuration** tab, enter your Profile ID and optionally a device name.
-4. Start the add-on.
-5. Point your router's DNS to your Home Assistant IP address.
+1. Install the add-on from the Add-on Store.
+2. Click **Start** to launch the add-on (the Web UI runs inside the active container).
+3. Click **OPEN WEB UI** (or select **NextDNS Manager** in the Home Assistant sidebar) to configure your default profile and assign NextDNS profiles to discovered devices.
+4. Point your router's DNS (e.g. TP-Link Omada DHCP DNS) to your Home Assistant IP address.
+
+> **Note**: Always **Start** the add-on first so the web server activates before clicking **OPEN WEB UI**.
+
 
 ## Configuration Options
 
